@@ -1,0 +1,5 @@
+.dockerignore
+.gitignore
+zarf/docker/
+zarf/k8s/
+makefile
