@@ -22,3 +22,13 @@ spec:
     spec:
       dnsPolicy: ClusterFirstWithHostNet
       hostNetwork: true
+
+      containers:
+        - name: sales-api
+          resources:
+            requests:
+              cpu: "1500m" # 1.5 cores on the node.
+              memory: 500Mi
+            limits:
+              cpu: "1500m" # 1.5 cores on the node.
+              memory: 500Mi

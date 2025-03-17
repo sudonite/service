@@ -11,7 +11,7 @@ KIND            := kindest/node:v1.27.1
 POSTGRES        := postgres:15.3
 VAULT           := hashicorp/vault:1.13
 ZIPKIN          := openzipkin/zipkin:2.24
-TELEPRESENCE    := datawire/tel2:2.13.2
+TELEPRESENCE    := datawire/tel2:2.13.1
 
 KIND_CLUSTER    := service-cluster
 NAMESPACE       := sales-system
@@ -65,7 +65,11 @@ dev-up-local:
 
 	kubectl wait --timeout=120s --namespace=local-path-storage --for=condition=Available deployment/local-path-provisioner
 
+	kind load docker-image $(TELEPRESENCE) --name $(KIND_CLUSTER)
+
 dev-up: dev-up-local
+	telepresence --context=kind-$(KIND_CLUSTER) helm install
+	telepresence --context=kind-$(KIND_CLUSTER) connect
 
 dev-down-local:
 	kind delete cluster --name $(KIND_CLUSTER)
@@ -92,17 +96,35 @@ dev-update-apply: all dev-load dev-apply
 # ==============================================================================
 
 dev-logs:
-	kubectl logs --namespace=$(NAMESPACE) -l app=$(APP) --all-containers=true -f --tail=100 --max-log-requests=6
+	kubectl logs --namespace=$(NAMESPACE) -l app=$(APP) --all-containers=true -f --tail=100 --max-log-requests=6 | go run app/tooling/logfmt/main.go -service=$(SERVICE_NAME)
 
 dev-status:
 	kubectl get nodes -o wide
 	kubectl get svc -o wide
 	kubectl get pods -o wide --watch --all-namespaces
 
+dev-describe-deployment:
+	kubectl describe deployment --namespace=$(NAMESPACE) $(APP)
+
+dev-describe-sales:
+	kubectl describe pod --namespace=$(NAMESPACE) -l app=$(APP)
+
+# ==============================================================================
+# Metrics and Tracing
+
+metrics-view-local:
+	expvarmon -ports="localhost:4000" -vars="build,requests,goroutines,errors,panics,mem:memstats.Alloc"
+
+test-endpoint-local:
+	curl -il localhost:4000/debug/vars
+
 # ==============================================================================
 
 run-local:
-	go run app/services/sales-api/main.go
+	go run app/services/sales-api/main.go | go run app/tooling/logfmt/main.go -service=$(SERVICE_NAME)
+
+run-local-help:
+	go run app/services/sales-api/main.go --help
 
 tidy:
 	go mod tidy
