@@ -96,7 +96,8 @@ dev-update-apply: all dev-load dev-apply
 # ==============================================================================
 
 dev-logs:
-	kubectl logs --namespace=$(NAMESPACE) -l app=$(APP) --all-containers=true -f --tail=100 --max-log-requests=6 | go run app/tooling/logfmt/main.go -service=$(SERVICE_NAME)
+	kubectl logs --namespace=$(NAMESPACE) -l app=$(APP) --all-containers=true -f --tail=100 --max-log-requests=6 | \
+	go run app/tooling/logfmt/main.go -service=$(SERVICE_NAME)
 
 dev-status:
 	kubectl get nodes -o wide
@@ -108,6 +109,15 @@ dev-describe-deployment:
 
 dev-describe-sales:
 	kubectl describe pod --namespace=$(NAMESPACE) -l app=$(APP)
+
+# ==============================================================================
+# Administration
+
+liveness:
+	curl -il http://localhost:4000/debug/liveness
+
+readiness:
+	curl -il http://localhost:4000/debug/readiness
 
 # ==============================================================================
 # Metrics and Tracing
@@ -129,3 +139,6 @@ run-local-help:
 tidy:
 	go mod tidy
 	go mod vendor
+
+test-endpoint-auth:
+	curl -il -H "Authorization: Bearer ${TOKEN}" localhost:3000/test/auth
