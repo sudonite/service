@@ -10,7 +10,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/open-policy-agent/opa/rego"
-	"github.com/sudonite/service/business/code/user"
+	"github.com/sudonite/service/business/core/user"
 	"go.uber.org/zap"
 )
 
