@@ -1,5 +1,7 @@
 package user
 
+import "github.com/sudonite/service/business/data/order"
+
 // DefaultOrderBy represents the default way we sort.
 var DefaultOrderBy = order.NewBy(OrderByID, order.ASC)
 

@@ -65,6 +65,7 @@ dev-up-local:
 
 	kubectl wait --timeout=120s --namespace=local-path-storage --for=condition=Available deployment/local-path-provisioner
 
+	kind load docker-image $(POSTGRES) --name $(KIND_CLUSTER)
 	kind load docker-image $(TELEPRESENCE) --name $(KIND_CLUSTER)
 
 dev-up: dev-up-local
@@ -83,6 +84,9 @@ dev-load:
 	kind load docker-image $(SERVICE_IMAGE) --name $(KIND_CLUSTER)
 
 dev-apply:
+	kustomize build zarf/k8s/dev/database | kubectl apply -f -
+	kubectl rollout status --namespace=$(NAMESPACE) --watch --timeout=120s sts/database
+
 	kustomize build zarf/k8s/dev/sales | kubectl apply -f -
 	kubectl wait pods --namespace=$(NAMESPACE) --selector app=$(APP) --for=condition=Ready
 
@@ -119,6 +123,12 @@ liveness:
 readiness:
 	curl -il http://localhost:4000/debug/readiness
 
+pgcli-local:
+	pgcli postgresql://postgres:postgres@localhost
+
+pgcli:
+	pgcli postgresql://postgres:postgres@database-service.$(NAMESPACE).svc.cluster.local
+
 # ==============================================================================
 # Metrics and Tracing
 
@@ -129,6 +139,27 @@ test-endpoint-local:
 	curl -il localhost:4000/debug/vars
 
 # ==============================================================================
+# Running tests within the local computer
+
+test-race:
+	CGO_ENABLED=1 go test -race -count=1 ./...
+
+test:
+	CGO_ENABLED=0 go test -count=1 ./...
+
+lint:
+	CGO_ENABLED=0 go vet ./...
+	staticcheck -checks=all ./...
+
+vuln-check:
+	govulncheck ./...
+
+test-all: test lint vuln-check
+
+test-all-race: test-race lint vuln-check
+
+# ==============================================================================
+
 
 run-local:
 	go run app/services/sales-api/main.go | go run app/tooling/logfmt/main.go -service=$(SERVICE_NAME)

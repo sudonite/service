@@ -6,13 +6,24 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
 // Handlers manages the set of check endpoints.
 type Handlers struct {
 	Build string
+	DB    *sqlx.DB
 	Log   *zap.SugaredLogger
+}
+
+// New constructs a Handlers api for the check group.
+func New(build string, db *sqlx.DB, log *zap.SugaredLogger) *Handlers {
+	return &Handlers{
+		Build: build,
+		DB:    db,
+		Log:   log,
+	}
 }
 
 // Readiness checks if the database is ready and if not will return a 500 status.
